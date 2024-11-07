@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <style>
+        *{
+            padding: 0;
+            margin: 0; 
+            box-sizing: border-box;
+        }
+        body{
+            background-color: rgb(27, 26, 26);
+            color: white;
+        }
+        form{
+            display: flex;
+            flex-direction: column;
+        }
+        .allNotes{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        #file{
+            border: 2px solid white;
+            background-color: gray;
+            color: black;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your Notes app</h1>
+    <hr>
+    <br><br><br>
+    <a href="/create">Create</a>
+
+    <h3>All Notes</h3>
+    <div class="allNotes">
+        <% files.forEach(function(val){ %>
+            <div id="file"> 
+                <h3><%= val %></h3>
+                <a href="/edit/<%=val%>">Edit Note</a>
+                <a href="/delete/<%=val%>">delete Note</a>
+            </div>
+        <%})%>
+    </div>
+</body>
+</html>
