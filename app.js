@@ -5,6 +5,10 @@ const path = require('path');
 const Notes = require('./models/notes');
 const User = require('./models/user');
 const req = require('express/lib/request');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
+
 
 
 
@@ -12,6 +16,7 @@ app.set("view engine" , "ejs");
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(express.static(path.join(__dirname , "public")));
+app.use(cookieParser());
 
 
 //Auth Routes
@@ -22,47 +27,83 @@ app.get('/signup' , (req , res) =>{
 
 app.post('/signup' , async (req, res) =>{
     const {Email , Username , Password , Age} = req.body;
-    console.log(req.body)
     const OldUser = await  User.findOne({Email : Email});
     if(OldUser){
         res.send("User Already Exist");
     }
     else{
-        const newUser =  new User({
-            Email :Email,
-            Username : Username, 
-            Password : Password,
-            Age: Age,
-        })
-        newUser.save();
+        bcrypt.genSalt(10, function(err, salt) {
+            bcrypt.hash(Password, salt, function(err, hash) {
+                console.log(hash);
+                const newUser =  new User({
+                    Email :Email,
+                    Username : Username, 
+                    Password : hash,
+                    Age: Age,
+                })
+                newUser.save();
+                
+            });
+        });
+        res.render('login');
+        let token = jwt.sign({email: Email , userid : newUser._id} , "Shhhh")
+        res.cookie('token' , token);
+        
     }
-    res.render('login');
     
 })
 
-app.get('/login' , (req , res) =>{
+app.get('/' , (req , res) =>{
     res.render('login');
 })
 
-app.post('/login' , (req , res) =>{
+app.post('/login' ,async (req , res) =>{
     const {Email , Password} = req.body;
-    const getUser = User.findOne({Email : Email , Password : Password});
-    if(getUser){
+    const getUser = await User.findOne({Email});
+    console.log(getUser);
+        if(getUser){
+            bcrypt.compare(Password, getUser.Password, function(err, result) {
+                if(!result){
+                res.send('wrong Password');
+               }
+               else{
+                    let token =  jwt.sign({Email : Email , userid : getUser._id } , "Shhhh");
+                    res.cookie("token" , token);
+                    console.log("working")
+                    res.redirect('/mynotes');
+               }
+               
+            })
+        }
+    
+    });
+
+app.get('/logout' , (req , res) => {
+        res.cookie("token" , "");
         res.redirect('/');
+    })
+   
+
+ function isLoggedIn(req , res , next){
+        // console.log(req.cookies);
+        if(req.cookies.token === "") res.send('you must be logged in')
+        else{
+            let data = jwt.verify(req.cookies.token , "Shhhh")
+            // console.log(data);
+            console.log("working fine")
+    
+        }
+        next();
     }
-    else{
-        res.send("Something Went Wrong");
-    }
-})
 
 
 
 
 //view Routes
 
-app.get('/' , async(req , res) =>{
+app.get('/mynotes', isLoggedIn , async(req , res) =>{
+    // console.log('user is ' , req.user);
     const allNotes = await Notes.find();
-    console.log(allNotes);
     res.render('home' , {allNotes})
 });
 
@@ -124,7 +165,7 @@ app.get('/delete/:filename' , async(req , res) => {
 })
 
 
-
+//middlewares
 
 
 
